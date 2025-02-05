@@ -2,6 +2,8 @@
 
 TasksAI is a CLI tool designed to help streamline your workflow
 
+![demo](./media/demo.gif)
+
 ## Running Locally
 
 1. **Install Rust**  
