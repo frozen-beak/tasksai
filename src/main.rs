@@ -182,7 +182,7 @@ fn main() -> Result<(), AppError> {
             let updated_code = client.generate_docs(code_contents)?;
 
             // Stop the spinner.
-            spinner.finish_with_message("Generated docs");
+            spinner.finish_with_message(format!("Written docs for -> {}", file.display()));
 
             // Unescape the returned string to convert "\n" sequences into actual newlines.
             let unescaped_code: String =
@@ -190,8 +190,36 @@ fn main() -> Result<(), AppError> {
 
             // Update the input file with the new code.
             std::fs::write(&file, &unescaped_code)?;
+        }
 
-            println!("Added docs in -> {}", file.display());
+        Commands::Test { file, output } => {
+            sanitize_path(&file)?;
+            validate_files(&[file.clone()])?;
+            let code_contents = read_inputs(&[file.clone()])?;
+
+            // Create and start the loading spinner.
+            let spinner = ProgressBar::new_spinner();
+            spinner.set_message("Writing Unit Tests...");
+            spinner.enable_steady_tick(Duration::from_millis(100));
+            spinner.set_style(
+                ProgressStyle::default_spinner()
+                    .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+                    .template("{spinner:.green} {msg}")
+                    .unwrap(),
+            );
+
+            // Invoke the docs generation endpoint.
+            let updated_code = client.generate_tests(code_contents)?;
+
+            // Stop the spinner.
+            spinner.finish_with_message(format!("Written unit tests for -> {}", file.display()));
+
+            // Unescape the returned string to convert "\n" sequences into actual newlines.
+            let unescaped_code: String =
+                serde_json::from_str(&updated_code).unwrap_or_else(|_| updated_code.clone());
+
+            // Update the input file with the new code.
+            std::fs::write(&output, &unescaped_code)?;
         }
     }
 

@@ -252,3 +252,66 @@ for improved **readability, maintainability, and adherence to language standards
 - Unnecessary restating of variable names in comments  
 - Introducing inconsistencies in documentation style  
 ";
+
+pub const GENERATE_TESTS_SYSTEM_PROMPT: &str = "
+## Objective
+
+**Generate unit tests** for provided code files to ensure correctness and reliability.
+
+**Return**:  
+- A `test_code` string containing well-structured unit tests  
+- Unchanged output if no testable logic is found  
+
+## Unit Test Checklist
+
+**1. Test Coverage**:
+- Cover all major functions, methods, and edge cases  
+- Ensure expected behavior for valid and invalid inputs  
+
+**2. Test Structure**:
+- Follow language-specific testing frameworks (e.g., `unittest`/`pytest` for Python, 
+`Jest` for JavaScript, `JUnit` for Java)  
+- Use clear test names reflecting functionality (e.g., `test_sort_valid_input`)  
+- Separate setup, execution, and assertions  
+
+**3. Edge Cases & Assertions**:
+- Handle edge cases (empty inputs, large datasets, invalid values)  
+- Validate function outputs, exceptions, and performance constraints  
+
+**4. Mocking & Isolation**:
+- Mock external dependencies (APIs, databases, file I/O) when needed  
+- Ensure unit tests do not rely on global state or external systems  
+
+## Formatting Examples
+
+**With generated tests**:
+```json
+{
+    \"output\": \"import unittest\nfrom my_module import process_data\n\nclass TestProcessData(unittest.TestCase):\n    def test_valid_input(self):\n        \"\"\"Test process_data with a standard input list.\"\"\"\n        self.assertEqual(process_data([\"apple\", \"banana\"]), {\"apple\": \"APPLE\", \"banana\": \"BANANA\"})\n    \n    def test_empty_input(self):\n        \"\"\"Test process_data with an empty list.\"\"\"\n        self.assertEqual(process_data([]), {})\n    \n    def test_invalid_input(self):\n        \"\"\"Ensure process_data handles non-list inputs properly.\"\"\"\n        with self.assertRaises(TypeError):\n            process_data(None)\n\nif __name__ == \"__main__\":\n    unittest.main()\n\"
+}
+```
+
+**No tests needed**:
+```json
+{
+    \"output\": \"\"
+}
+```
+
+## Guidelines
+
+**Be Objective**:
+- Generate tests only for functions with defined logic  
+- Follow best practices for test structure and readability  
+- Avoid redundant or trivial tests  
+
+**Priority Order**:
+1. Core function correctness  
+2. Edge cases and failure scenarios  
+3. Mocking dependencies and performance constraints  
+
+**Avoid**:
+- Testing trivial one-liners without logic  
+- Relying on hardcoded values instead of parameterized tests  
+- Writing overly complex or unnecessary tests  
+";

@@ -1,7 +1,8 @@
 use crate::{
     errors::AppError,
     prompts::{
-        BUG_ANALYSIS_SYSTEM_PROMPT, GENERATE_DOCS_SYSTEM_PROMPT, PERFORMANCE_IMPROVEMENT_SYSTEM_PROMPT, PLAN_SYSTEM_PROMPT
+        BUG_ANALYSIS_SYSTEM_PROMPT, GENERATE_DOCS_SYSTEM_PROMPT, GENERATE_TESTS_SYSTEM_PROMPT,
+        PERFORMANCE_IMPROVEMENT_SYSTEM_PROMPT, PLAN_SYSTEM_PROMPT,
     },
 };
 use reqwest::blocking::Client;
@@ -202,6 +203,59 @@ impl GeminiClient {
                     "properties": {
                         "output": {
                         "type": "string"
+                        }
+                    }
+                }
+            }
+        });
+
+        let response_text = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .timeout(Duration::from_secs(60))
+            .json(&payload)
+            .send()?
+            .error_for_status()?
+            .text()?;
+
+        // In this case, we simply return the JSON response as a formatted string.
+        extract_response_text_code(&response_text)
+    }
+
+    /// Write unit tests for provided code file
+    pub fn generate_tests(&self, code_input: String) -> Result<String, AppError> {
+        let mut input_prompt = String::new();
+
+        input_prompt.insert_str(0, &code_input);
+        input_prompt.insert_str(0, "Write good docs for this code");
+
+        let url = format!(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={}",
+            self.api_key
+        );
+
+        // The payload includes a response schema to force JSON output.
+        let payload = json!({
+            "contents": [{
+                "role": "user",
+                "parts": [{ "text": input_prompt }]
+            }],
+            "systemInstruction": {
+                "role": "system",
+                "parts": [{ "text": GENERATE_TESTS_SYSTEM_PROMPT }]
+            },
+            "generationConfig": {
+                "temperature": 1,
+                "topK": 40,
+                "topP": 0.95,
+                "maxOutputTokens": 8192,
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "object",
+                    "properties": {
+                        "output": {
+                            "type": "string"
                         }
                     }
                 }

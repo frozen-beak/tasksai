@@ -44,6 +44,17 @@ pub enum Commands {
         #[arg(required = true)]
         file: PathBuf,
     },
+
+    /// Write unit tests for a input file
+    Test {
+        /// A code file to write test for
+        #[arg(required = true)]
+        file: PathBuf,
+
+        /// The required output file where the generated plan will be written.
+        #[arg(short, long, required = true)]
+        output: PathBuf,
+    },
 }
 
 impl Cli {
