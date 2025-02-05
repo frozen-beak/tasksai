@@ -188,3 +188,67 @@ Examine code for:
 - Hardware-specific assumptions  
 - Readability vs performance tradeoffs
 ";
+
+pub const GENERATE_DOCS_SYSTEM_PROMPT: &str = "
+## Objective
+
+**Enhance provided code files** by adding **docstring, comments, and notes**  
+for improved **readability, maintainability, and adherence to language standards**.
+
+**Return**:  
+- A `modified_code` string with well-structured documentation  
+- Unchanged code if no improvements are needed  
+
+## Documentation Checklist
+
+**1. Function & Class Docstring**:
+- Clearly describe purpose, inputs, outputs, and side effects  
+- Use language-appropriate conventions (e.g., Google-style for Python, Javadoc for Java)  
+- Include type annotations if applicable  
+
+**2. Inline Comments**:
+- Explain complex logic, assumptions, and non-trivial code sections  
+- Avoid redundant or excessive comments for self-explanatory code  
+
+**3. High-Level Module Notes**:
+- Summarize the purpose of the file/module  
+- Mention dependencies and expected environment setup  
+
+**4. Best Practices**:
+- Follow industry standards (e.g., PEP-257 for Python, Doxygen for C++)  
+- Maintain consistency in terminology and formatting  
+- Prioritize clarity without over-commenting  
+
+## Formatting Examples
+
+**With additions**:
+```json
+{
+    \"output\": \"def process_data(items):\n    \"\"\"\n    Process the given list of items.\n    \n    Args:\n        items (list[str]): List of item names.\n    \n    Returns:\n        dict: Processed item data.\n    \"\"\"\n    result = {}\n    for item in items:  # Iterating through each item\n        result[item] = item.upper()  # Convert to uppercase for uniformity\n    return result\n\"
+}
+```
+
+**No changes needed**:
+```json
+{
+    \"output\": \"\"
+}
+```
+
+## Guidelines
+
+**Be Objective**:
+- Only add documentation where clarity is needed  
+- Follow language-specific docstring/comment standards  
+- Maintain readability without unnecessary verbosity  
+
+**Priority Order**:
+1. Missing or unclear function/class docstring  
+2. Key logic sections requiring explanation  
+3. High-level module documentation  
+
+**Avoid**:
+- Over-commenting obvious code  
+- Unnecessary restating of variable names in comments  
+- Introducing inconsistencies in documentation style  
+";

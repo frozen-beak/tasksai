@@ -1,7 +1,7 @@
 use crate::{
     errors::AppError,
     prompts::{
-        BUG_ANALYSIS_SYSTEM_PROMPT, PERFORMANCE_IMPROVEMENT_SYSTEM_PROMPT, PLAN_SYSTEM_PROMPT,
+        BUG_ANALYSIS_SYSTEM_PROMPT, GENERATE_DOCS_SYSTEM_PROMPT, PERFORMANCE_IMPROVEMENT_SYSTEM_PROMPT, PLAN_SYSTEM_PROMPT
     },
 };
 use reqwest::blocking::Client;
@@ -114,7 +114,7 @@ impl GeminiClient {
         extract_response_text_json(&response_text)
     }
 
-    /// Check provided code files for bugs and vulnerabilities.
+    /// Check provided code files for performance improvements
     pub fn improve_performance(&self, code_input: String) -> Result<String, AppError> {
         let mut input_prompt = String::new();
 
@@ -168,6 +168,59 @@ impl GeminiClient {
         // In this case, we simply return the JSON response as a formatted string.
         extract_response_text_json(&response_text)
     }
+
+    /// Generate documentation for provided code file
+    pub fn generate_docs(&self, code_input: String) -> Result<String, AppError> {
+        let mut input_prompt = String::new();
+
+        input_prompt.insert_str(0, &code_input);
+        input_prompt.insert_str(0, "Write good docs for this code");
+
+        let url = format!(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={}",
+            self.api_key
+        );
+
+        // The payload includes a response schema to force JSON output.
+        let payload = json!({
+            "contents": [{
+                "role": "user",
+                "parts": [{ "text": input_prompt }]
+            }],
+            "systemInstruction": {
+                "role": "system",
+                "parts": [{ "text": GENERATE_DOCS_SYSTEM_PROMPT }]
+            },
+            "generationConfig": {
+                "temperature": 1,
+                "topK": 40,
+                "topP": 0.95,
+                "maxOutputTokens": 8192,
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                    "type": "object",
+                    "properties": {
+                        "output": {
+                        "type": "string"
+                        }
+                    }
+                }
+            }
+        });
+
+        let response_text = self
+            .client
+            .post(&url)
+            .header("Content-Type", "application/json")
+            .timeout(Duration::from_secs(60))
+            .json(&payload)
+            .send()?
+            .error_for_status()?
+            .text()?;
+
+        // In this case, we simply return the JSON response as a formatted string.
+        extract_response_text_code(&response_text)
+    }
 }
 
 /// Extracts text from a plain text Gemini API response.
@@ -183,9 +236,6 @@ fn extract_response_text_plain(response_body: &str) -> Result<String, AppError> 
 
 /// Extracts the JSON response from a Gemini API response and formats it.
 fn extract_response_text_json(response_body: &str) -> Result<String, AppError> {
-    // println!("----------");
-    // println!("{response_body}");
-    // println!("----------");
     // Parse the outer response.
     let parsed: Value = serde_json::from_str(response_body)
         .map_err(|e| AppError::InvalidResponse(e.to_string()))?;
@@ -202,6 +252,34 @@ fn extract_response_text_json(response_body: &str) -> Result<String, AppError> {
     // Extract the bugs list; if it doesn't exist, default to an empty array.
     let bugs = inner_json
         .get("list")
+        .cloned()
+        .unwrap_or_else(|| Value::Array(vec![]));
+
+    // Pretty-print the bugs list.
+    let formatted = serde_json::to_string_pretty(&bugs)
+        .map_err(|e| AppError::InvalidResponse(e.to_string()))?;
+
+    Ok(formatted)
+}
+
+/// Extracts the code from the response
+fn extract_response_text_code(response_body: &str) -> Result<String, AppError> {
+    // Parse the outer response.
+    let parsed: Value = serde_json::from_str(response_body)
+        .map_err(|e| AppError::InvalidResponse(e.to_string()))?;
+
+    // Extract the inner JSON string from the response.
+    let inner_text = parsed["candidates"][0]["content"]["parts"][0]["text"]
+        .as_str()
+        .ok_or_else(|| AppError::InvalidResponse("Missing text in response".to_string()))?;
+
+    // Parse the inner JSON string.
+    let inner_json: Value =
+        serde_json::from_str(inner_text).map_err(|e| AppError::InvalidResponse(e.to_string()))?;
+
+    // Extract the bugs list; if it doesn't exist, default to an empty array.
+    let bugs = inner_json
+        .get("output")
         .cloned()
         .unwrap_or_else(|| Value::Array(vec![]));
 

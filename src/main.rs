@@ -147,19 +147,51 @@ fn main() -> Result<(), AppError> {
             spinner.finish_with_message("Checked for performance improvements");
 
             let bugs: Vec<String> = serde_json::from_str(&bug_report).map_err(|e| {
-                AppError::InvalidResponse(format!("Error parsing bug report JSON: {}", e))
+                AppError::InvalidResponse(format!("Error parsing the response: {}", e))
             })?;
 
             if bugs.is_empty() {
-                println!("Bug Analysis Report: No bugs found!");
+                println!("No improvements found!");
             } else {
-                println!("Bug Analysis Report:\n");
+                println!("Performance Improvements:\n");
                 for (i, bug) in bugs.iter().enumerate() {
                     println!("{}. {}", i + 1, bug);
                 }
             }
 
             println!("");
+        }
+
+        Commands::Docs { file } => {
+            sanitize_path(&file)?;
+            validate_files(&[file.clone()])?;
+            let code_contents = read_inputs(&[file.clone()])?;
+
+            // Create and start the loading spinner.
+            let spinner = ProgressBar::new_spinner();
+            spinner.set_message("Generating docs...");
+            spinner.enable_steady_tick(Duration::from_millis(100));
+            spinner.set_style(
+                ProgressStyle::default_spinner()
+                    .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+                    .template("{spinner:.green} {msg}")
+                    .unwrap(),
+            );
+
+            // Invoke the docs generation endpoint.
+            let updated_code = client.generate_docs(code_contents)?;
+
+            // Stop the spinner.
+            spinner.finish_with_message("Generated docs");
+
+            // Unescape the returned string to convert "\n" sequences into actual newlines.
+            let unescaped_code: String =
+                serde_json::from_str(&updated_code).unwrap_or_else(|_| updated_code.clone());
+
+            // Update the input file with the new code.
+            std::fs::write(&file, &unescaped_code)?;
+
+            println!("Added docs in -> {}", file.display());
         }
     }
 

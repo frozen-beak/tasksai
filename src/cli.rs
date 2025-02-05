@@ -37,6 +37,13 @@ pub enum Commands {
         #[arg(required = true)]
         files: Vec<PathBuf>,
     },
+
+    /// Add documentation in code
+    Docs {
+        /// A code file to generate the code for
+        #[arg(required = true)]
+        file: PathBuf,
+    },
 }
 
 impl Cli {
