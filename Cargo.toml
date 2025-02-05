@@ -13,4 +13,3 @@ walkdir = "2.5.0"
 thiserror = "1.0"
 dialoguer = "0.10"
 indicatif = "0.17.11"
-
